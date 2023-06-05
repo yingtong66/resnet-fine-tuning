@@ -1,0 +1,7 @@
+*.zip
+*.tar
+*.db
+train_data/*
+**/__pycache__/*
+**/.ipynb_checkpoints/*
+logs/*
