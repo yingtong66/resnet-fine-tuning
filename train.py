@@ -24,40 +24,6 @@ from utils.data_utils import get_loader
 from utils.dist_util import *
 from timm.utils import accuracy, AverageMeter
 
-def setup(args, logger):
-    loc = 'cuda:{}'.format(0)
-    checkpoint = torch.load('checkpoint_0099.pth.tar', map_location=loc)
-
-    # create new OrderedDict that does only contain module.encoder_k statedict
-    from collections import OrderedDict
-    new_state_dict = OrderedDict()
-    for k, v in checkpoint['state_dict'].items():
-        if k[:17]=='module.encoder_k.':
-            name = k[17:] # remove 'module.encoder_k.'
-            new_state_dict[name] = v
-    resnet50 = models.resnet50(num_classes=128)
-    dim_mlp = resnet50.fc.weight.shape[1]
-    print(dim_mlp)
-    resnet50.fc = nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), resnet50.fc)
-    resnet50.load_state_dict(new_state_dict)
-
-    # resnetayt-20epoch模型
-    # resnet50.fc = nn.Linear(dim_mlp, 40)  # 将输出类别数设置为40
-    # resnetayt-20epoch-2linear模型
-    resnet50.fc=nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.Dropout(p=0.5), nn.ReLU(), nn.Linear(dim_mlp, 40))
-    
-    resnet50.to(args.device)
-    
-    logger.info("Training parameters %s", args)
-    return args, resnet50
-
-
-def set_seed(args):
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    if args.n_gpu > 0:
-        torch.cuda.manual_seed_all(args.seed)
 
 def parse_option():
     parser = argparse.ArgumentParser('Resnet50 training and evaluation script', add_help=False)
@@ -72,7 +38,7 @@ def parse_option():
     # train
     parser.add_argument('--epochs', type=int, default=20)
     parser.add_argument("--train_batch_size", default=32, type=int, help="Total batch size for training.")
-    parser.add_argument("--lr", default=1e-3, type=float, help="The initial learning rate for SGD.")
+    parser.add_argument("--lr", default=3e-2, type=float, help="The initial learning rate for SGD.")
     parser.add_argument("--max_accuracy", default=0.0, type=float)
     # model
     parser.add_argument("--pretrain_dir", type=str, default="./pretrain", help="Where to search for pretrained ViT models.")
@@ -88,8 +54,6 @@ def parse_option():
                         help="Run prediction on validation set every so many steps."
                              "Will always run one evaluation at the end of training.")
 
-    parser.add_argument("--learning_rate", default=3e-2, type=float,
-                        help="The initial learning rate for SGD.")
     parser.add_argument("--weight_decay", default=0, type=float,
                         help="Weight deay if we apply some.")
     parser.add_argument("--num_steps", default=10000, type=int,
@@ -118,6 +82,42 @@ def parse_option():
                              "Positive power of 2: static loss scaling value.\n")
     args = parser.parse_args()
     return args
+
+
+def setup(args, logger):
+    loc = 'cuda:{}'.format(0)
+    checkpoint = torch.load('checkpoint_0099.pth.tar', map_location=loc)
+
+    # create new OrderedDict that does only contain module.encoder_k statedict
+    from collections import OrderedDict
+    new_state_dict = OrderedDict()
+    for k, v in checkpoint['state_dict'].items():
+        if k[:17]=='module.encoder_k.':
+            name = k[17:] # remove 'module.encoder_k.'
+            new_state_dict[name] = v
+    resnet50 = models.resnet50(num_classes=128)
+    dim_mlp = resnet50.fc.weight.shape[1]
+    print(dim_mlp)
+    resnet50.fc = nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), resnet50.fc)
+    resnet50.load_state_dict(new_state_dict)
+
+    # resnetayt-20epoch模型
+    resnet50.fc = nn.Linear(dim_mlp, 40)  # 将输出类别数设置为40
+    # resnetayt-20epoch-2linear模型
+    # resnet50.fc=nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.Dropout(p=0.5), nn.ReLU(), nn.Linear(dim_mlp, 40))
+    
+    resnet50.to(args.device)
+    
+    logger.info("Training parameters %s", args)
+    return args, resnet50
+
+
+def set_seed(args):
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if args.n_gpu > 0:
+        torch.cuda.manual_seed_all(args.seed)
 
 def main(args):
     # get logger

@@ -33,7 +33,6 @@ def setup(args, logger):
     resnet50.fc = nn.Sequential(nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), resnet50.fc)
     
     resnet50.fc = nn.Linear(dim_mlp, 40)  # 将输出类别数设置为40
-    # resnet50.fc=nn.Sequential(nn.Dropout(p=0.5),nn.Linear(dim_mlp, dim_mlp), nn.ReLU(), nn.Linear(dim_mlp, 40))
     resnet50.load_state_dict(checkpoint)
     resnet50.to(args.device)
     
