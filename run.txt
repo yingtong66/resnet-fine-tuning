@@ -1,8 +1,13 @@
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
 tensorboard --logdir ./ --port=[eg:6008]
 
-
+# train
 python train.py --name resnet50ayt-20epoch
+python train.py --name resnet50ayt-20epoch-2linear
+
+# test
+python test.py --name resnet50ayt-20epoch-test --load ./logs/rubbish/resnet50ayt-20epoch/resnet50ayt-20epoch-Latest-epoch20.pth
+python test.py --name resnet50ayt-20epoch-2linear-test --load ./logs/rubbish/resnet50ayt-20epoch-2linear/resnet50ayt-20epoch-2linear-Latest-epoch20.pth
 
 # tmux commands
 tmux ls  # 查看当前 Tmux 会话
